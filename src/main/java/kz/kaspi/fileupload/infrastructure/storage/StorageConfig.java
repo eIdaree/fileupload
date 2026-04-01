@@ -1,4 +1,4 @@
-package kz.kaspi.fileupload.config;
+package kz.kaspi.fileupload.infrastructure.storage;
 
 import io.minio.MinioClient;
 import lombok.extern.slf4j.Slf4j;

@@ -1,1 +1,53 @@
-spring.application.name=upload-file-service
+spring:
+  application:
+    name: file-upload-service
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/fileupload
+      database: fileupload
+    redis:
+      host: localhost
+      port: 6379
+
+  codec:
+    max-in-memory-size: 10MB
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+  security:
+    enabled: false
+
+app:
+  storage:
+    minio:
+      endpoint: http://localhost:9000
+      access-key: minioadmin
+      secret-key: minioadmin
+      bucket-name: file-uploads
+
+  upload:
+    max-file-size: 52428800  # 50MB in bytes
+    allowed-extensions: jpg,jpeg,png,pdf,doc,docx,txt,zip
+
+  idempotency:
+    ttl-hours: 24
+
+
+logging:
+  level:
+    kz.kaspi.fileupload: DEBUG
+    org.springframework.data.mongodb: INFO
+    org.springframework.data.redis: INFO
+    io.minio: INFO
+    org.springframework.security: DEBUG

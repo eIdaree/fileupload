@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: fileupload-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: fileupload
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - fileupload-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/fileupload --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: fileupload-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - fileupload-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: fileupload-minio
+    ports:
+      - "9000:9000"      # API
+      - "9001:9001"      # Console UI
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - fileupload-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio-create-bucket:
+    image: minio/mc:latest
+    container_name: fileupload-minio-setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/file-uploads --ignore-existing;
+      /usr/bin/mc anonymous set download myminio/file-uploads;
+      echo 'MinIO bucket created successfully';
+      exit 0;
+      "
+    networks:
+      - fileupload-network
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: fileupload-mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - fileupload-network
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: fileupload-redis-commander
+    ports:
+      - "8082:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - fileupload-network
+
+volumes:
+  mongodb_data:
+  minio_data:
+
+networks:
+  fileupload-network:
+    driver: bridge

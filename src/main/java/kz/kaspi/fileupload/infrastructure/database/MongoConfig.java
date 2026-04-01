@@ -1,4 +1,4 @@
-package kz.kaspi.fileupload.config;
+package kz.kaspi.fileupload.infrastructure.database;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.EnableReactiveMongoAuditing;
